@@ -44,7 +44,7 @@ missingvalue = -999.999
 err_number = 1.0e-9
 err_array = 0.0
 
-for c in map(name, Mimi.compdefs(m)), v in Mimi.variable_names(m, c)
+for c in map(nameof, Mimi.compdefs(m)), v in Mimi.variable_names(m, c)
 
     #load data for comparison
     filename = joinpath(@__DIR__, "../contrib/validation_data_v040/$c-$v.csv")
