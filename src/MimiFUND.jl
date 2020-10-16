@@ -49,7 +49,25 @@ const global default_nsteps = 1050
 const global default_datadir = joinpath(dirname(@__FILE__), "..", "data")
 const global default_params = nothing
 
-function get_model(; nsteps = default_nsteps, datadir = default_datadir, params = default_params)
+function get_model(; nsteps = default_nsteps, datadir = default_datadir, params = default_params,
+    remove_damages = [])
+
+    # Test the values passed in `remove_damages` function
+    damage_sectors = [
+        :heating,
+        :cooling,
+        :agriculture,
+        :biodiversity,
+        :waterresources,
+        :tropicalstorms,
+        :extratropicalstorms,
+        :forests,
+        :sealevelrise,
+        :deathmorbidity
+    ]
+    for sector in remove_damages
+        sector in damage_sectors ? nothing : error("Unknown sector specified in `remove_damages`: $sector.")
+    end
 
     # ---------------------------------------------
     # Create model
@@ -234,22 +252,82 @@ function get_model(; nsteps = default_nsteps, datadir = default_datadir, params 
     connect_param!(m, :impactsealevelrise, :sea, :ocean, :sea)
     connect_param!(m, :impactsealevelrise, :area, :geography, :area)
 
+    #--------------------------------------------------------------------------
+    # Impact aggregation component
+    #   - set values to zero for sectors specifiec in `remove_damages`
+    #--------------------------------------------------------------------------
+
     connect_param!(m, :impactaggregation, :income, :socioeconomic, :income)
-    connect_param!(m, :impactaggregation, :heating, :impactheating, :heating)
-    connect_param!(m, :impactaggregation, :cooling, :impactcooling, :cooling)
-    connect_param!(m, :impactaggregation, :agcost, :impactagriculture, :agcost)
-    connect_param!(m, :impactaggregation, :species, :impactbiodiversity, :species)
-    connect_param!(m, :impactaggregation, :water, :impactwaterresources, :water)
-    connect_param!(m, :impactaggregation, :hurrdam, :impacttropicalstorms, :hurrdam)
-    connect_param!(m, :impactaggregation, :extratropicalstormsdam, :impactextratropicalstorms, :extratropicalstormsdam)
-    connect_param!(m, :impactaggregation, :forests, :impactforests, :forests)
-    connect_param!(m, :impactaggregation, :drycost, :impactsealevelrise, :drycost)
-    connect_param!(m, :impactaggregation, :protcost, :impactsealevelrise, :protcost)
-    connect_param!(m, :impactaggregation, :entercost, :impactsealevelrise, :entercost)
-    connect_param!(m, :impactaggregation, :deadcost, :impactdeathmorbidity, :deadcost)
-    connect_param!(m, :impactaggregation, :morbcost, :impactdeathmorbidity, :morbcost)
-    connect_param!(m, :impactaggregation, :wetcost, :impactsealevelrise, :wetcost)
-    connect_param!(m, :impactaggregation, :leavecost, :impactsealevelrise, :leavecost)
+
+    if :heating in remove_damages
+        set_param!(m, :impactaggregation, :heating, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :heating, :impactheating, :heating)
+    end
+
+    if :cooling in remove_damages
+        set_param!(m, :impactaggregation, :cooling, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :cooling, :impactcooling, :cooling)
+    end        
+
+    if :agriculture in remove_damages
+        set_param!(m, :impactaggregation, :agcost, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :agcost, :impactagriculture, :agcost)
+    end      
+
+    if :biodiversity in remove_damages
+        set_param!(m, :impactaggregation, :species, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :species, :impactbiodiversity, :species)
+    end  
+
+    if :waterresources in remove_damages
+        set_param!(m, :impactaggregation, :water, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :water, :impactwaterresources, :water)
+    end  
+
+    if :tropicalstorms in remove_damages
+        set_param!(m, :impactaggregation, :hurrdam, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :hurrdam, :impacttropicalstorms, :hurrdam)
+    end  
+
+    if :extratropicalstorms in remove_damages
+        set_param!(m, :impactaggregation, :extratropicalstormsdam, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :extratropicalstormsdam, :impactextratropicalstorms, :extratropicalstormsdam)
+    end  
+
+    if :forests in remove_damages
+        set_param!(m, :impactaggregation, :forests, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :forests, :impactforests, :forests)
+    end  
+
+    if :deathmorbidity in remove_damages
+        set_param!(m, :impactaggregation, :deadcost, zeros(nsteps+1, 16))
+        set_param!(m, :impactaggregation, :morbcost, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :deadcost, :impactdeathmorbidity, :deadcost)
+        connect_param!(m, :impactaggregation, :morbcost, :impactdeathmorbidity, :morbcost)
+    end  
+    
+    if :sealevelrise in remove_damages
+        set_param!(m, :impactaggregation, :drycost, zeros(nsteps+1, 16))
+        set_param!(m, :impactaggregation, :protcost, zeros(nsteps+1, 16))
+        set_param!(m, :impactaggregation, :entercost, zeros(nsteps+1, 16))
+        set_param!(m, :impactaggregation, :wetcost, zeros(nsteps+1, 16))
+        set_param!(m, :impactaggregation, :leavecost, zeros(nsteps+1, 16))
+    else
+        connect_param!(m, :impactaggregation, :drycost, :impactsealevelrise, :drycost)
+        connect_param!(m, :impactaggregation, :protcost, :impactsealevelrise, :protcost)
+        connect_param!(m, :impactaggregation, :entercost, :impactsealevelrise, :entercost)
+        connect_param!(m, :impactaggregation, :wetcost, :impactsealevelrise, :wetcost)
+        connect_param!(m, :impactaggregation, :leavecost, :impactsealevelrise, :leavecost)
+    end
 
     # ---------------------------------------------
     # Set all external parameter values
