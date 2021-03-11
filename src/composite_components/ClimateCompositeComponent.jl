@@ -43,7 +43,8 @@ include("../components/OceanComponent.jl")
     climateregional_temp_var = Variable(climateregional.temp)
 
     # HOOKS for connection with FAIR - TODO we cannot expose these without then
-    # setting them ... current errors but not sure why?
+    # setting them ... because normally these are already connected so doing this
+    # creates a new exogenous parameter that is then never set
     temp = Parameter(climateco2cycle.temp, biodiversity.temp, ocean.temp) 
     inputtemp = Parameter(climateregional.inputtemp)
 
