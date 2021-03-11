@@ -41,6 +41,10 @@ include("components/ImpactSeaLevelRiseComponent.jl")
 include("components/ImpactAggregationComponent.jl")
 include("components/VslVmorbComponent.jl")
 
+include("composite_components/EmissionsCompositeComponent.jl");
+include("composite_components/ClimateCompositeComponent.jl");
+include("composite_components/ImpactsCompositeComponent.jl");
+
 export
     getfund # a function that returns a version of fund allowing for different user specifications
 
@@ -266,6 +270,88 @@ function get_model(; nsteps = default_nsteps, datadir = default_datadir, params 
 
     return m
 
+end
+
+function get_composite_model(; nsteps = default_nsteps, datadir = default_datadir, params = default_params)
+
+    # ---------------------------------------------
+    # Create model
+    # ---------------------------------------------
+
+    m = Model()
+
+    # ---------------------------------------------
+    # Set dimensions
+    # ---------------------------------------------
+
+    if nsteps != default_nsteps
+        if datadir != default_datadir || params != default_params
+            set_dimension!(m, :time, collect(1950:1950 + nsteps)) # If the user provided an alternative datadir or params dictionary, then the time dimensions can be reset now
+            reset_time_dimension = false
+        else
+            nsteps > default_nsteps ? error("Invalid `nsteps`: $nsteps. Cannot build a MimiFUND model with more than $default_nsteps timesteps, unless an alternative `datadir` or `params` dictionary is provided.") : nothing
+            set_dimension!(m, :time, collect(1950:1950 + default_nsteps)) # start with the default FUND time dimension, so that `set_leftover_params!` will work with the default parameter lengths
+            reset_time_dimension = true # then reset the time dimension at the end
+        end
+    else
+        set_dimension!(m, :time, collect(1950:1950 + default_nsteps))    # default FUND time dimension
+        reset_time_dimension = false
+    end
+    
+    set_dimension!(m, :regions, ["USA", "CAN", "WEU", "JPK", "ANZ", "EEU", "FSU", "MDE", "CAM", "LAM", "SAS", "SEA", "CHI", "MAF", "SSA", "SIS"])
+    
+    # ---------------------------------------------
+    # Create components
+    # ---------------------------------------------
+
+    add_comp!(m, emissionscomposite);
+    add_comp!(m, climatecomposite);
+    add_comp!(m, impactscomposite);
+
+    # ---------------------------------------------
+    # Connect parameters to variables
+    # ---------------------------------------------
+
+    connect_param!(m, :emissionscomposite, :landloss, :impactscomposite, :landloss)
+    connect_param!(m, :emissionscomposite, :enter, :impactscomposite, :enter)
+    connect_param!(m, :emissionscomposite, :leave, :impactscomposite, :leave)
+    connect_param!(m, :emissionscomposite, :dead, :impactscomposite, :dead)
+    connect_param!(m, :emissionscomposite, :eloss, :impactscomposite, :eloss)
+    connect_param!(m, :emissionscomposite, :sloss, :impactscomposite, :sloss)
+
+    connect_param!(m, :climatecomposite, :mco2, :emissionscomposite, :mco2)
+    connect_param!(m, :climatecomposite, :globch4, :emissionscomposite, :globch4)
+    connect_param!(m, :climatecomposite, :globn2o, :emissionscomposite, :globn2o)
+    connect_param!(m, :climatecomposite, :globsf6, :emissionscomposite, :globsf6)
+
+    connect_param!(m, :impactscomposite, :population, :emissionscomposite, :population_var)
+    connect_param!(m, :impactscomposite, :income, :emissionscomposite, :income)
+    connect_param!(m, :impactscomposite, :plus, :emissionscomposite, :plus)
+    connect_param!(m, :impactscomposite, :urbpop, :emissionscomposite, :urbpop)
+    connect_param!(m, :impactscomposite, :cumaeei, :emissionscomposite, :cumaeei)
+    connect_param!(m, :impactscomposite, :area, :emissionscomposite, :area)
+
+    connect_param!(m, :impactscomposite, :temp, :climatecomposite, :climateregional_temp_var)
+    connect_param!(m, :impactscomposite, :acco2, :climatecomposite, :acco2)
+    connect_param!(m, :impactscomposite, :nospecies, :climatecomposite, :nospecies)
+    connect_param!(m, :impactscomposite, :regtmp, :climatecomposite, :regtmp)
+    connect_param!(m, :impactscomposite, :regstmp, :climatecomposite, :regstmp)
+    connect_param!(m, :impactscomposite, :sea, :climatecomposite, :sea)
+
+    # ---------------------------------------------
+    # Set all external parameter values
+    # ---------------------------------------------
+
+    parameters = params === nothing ? load_default_parameters(datadir) : params
+    
+    for (name, value) in parameters
+        set_param!(m, name, value)
+    end
+
+    # Reset the time dimension if needed
+    reset_time_dimension ? set_dimension!(m, :time, collect(1950:1950 + nsteps)) : nothing
+
+    return m
 end
 
 getfund = get_model
