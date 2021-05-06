@@ -15,23 +15,23 @@
     lifetempqd = Parameter()
 
     # Climate sensitivity
-    climatesensitivity = Parameter(default = 2.999999803762826)
+    climatesensitivity = Parameter(default=2.999999803762826)
 
     function run_timestep(p, v, d, t)
         
-        if is_first(t)
-            v.temp[t] = 0.20
-        else
-            LifeTemp = max(p.lifetempconst + p.lifetemplin * p.climatesensitivity + p.lifetempqd * p.climatesensitivity^2.0, 1.0)
+    if is_first(t)
+        v.temp[t] = 0.20
+    else
+        LifeTemp = max(p.lifetempconst + p.lifetemplin * p.climatesensitivity + p.lifetempqd * p.climatesensitivity^2.0, 1.0)
 
-            delaytemp = 1.0 / LifeTemp
+        delaytemp = 1.0 / LifeTemp
 
-            temps = p.climatesensitivity / 5.35 / log(2.0)
+        temps = p.climatesensitivity / 5.35 / log(2.0)
 
             # Calculate temperature
-            dtemp = delaytemp * temps * p.radforc[t] - delaytemp * v.temp[t - 1]
+        dtemp = delaytemp * temps * p.radforc[t] - delaytemp * v.temp[t - 1]
 
-            v.temp[t] = v.temp[t - 1] + dtemp
-        end
+        v.temp[t] = v.temp[t - 1] + dtemp
     end
+end
 end

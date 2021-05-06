@@ -17,7 +17,7 @@ end
     ch4pre = Parameter()
 
     # Indirect radiative forcing increase for CH4
-    ch4ind = Parameter(default = 0.4)
+    ch4ind = Parameter(default=0.4)
 
     # Atmospheric N2O concentration
     acn2o = Parameter(index=[time])
@@ -54,20 +54,20 @@ end
 
     function run_timestep(p, v, d, t)
 
-        if !is_first(t)
-            ch4n2o = interact(p.ch4pre, p.n2opre)
+    if !is_first(t)
+        ch4n2o = interact(p.ch4pre, p.n2opre)
 
-            v.rfco2[t] = 5.35 * log(p.acco2[t] / p.co2pre)
+        v.rfco2[t] = 5.35 * log(p.acco2[t] / p.co2pre)
 
-            v.rfch4[t] = 0.036 * (1.0 + p.ch4ind) * (sqrt(p.acch4[t]) - sqrt(p.ch4pre)) - interact(p.acch4[t], p.n2opre) + ch4n2o
+        v.rfch4[t] = 0.036 * (1.0 + p.ch4ind) * (sqrt(p.acch4[t]) - sqrt(p.ch4pre)) - interact(p.acch4[t], p.n2opre) + ch4n2o
 
-            v.rfn2o[t] = 0.12 * (sqrt(p.acn2o[t]) - sqrt(p.n2opre)) - interact(p.ch4pre, p.acn2o[t]) + ch4n2o
+        v.rfn2o[t] = 0.12 * (sqrt(p.acn2o[t]) - sqrt(p.n2opre)) - interact(p.ch4pre, p.acn2o[t]) + ch4n2o
 
-            v.rfsf6[t] = 0.00052 * (p.acsf6[t] - p.sf6pre)
+        v.rfsf6[t] = 0.00052 * (p.acsf6[t] - p.sf6pre)
 
-            v.radforc[t] = v.rfco2[t] + v.rfch4[t] + v.rfn2o[t] + v.rfsf6[t] + p.rfso2[t]
+        v.radforc[t] = v.rfco2[t] + v.rfch4[t] + v.rfn2o[t] + v.rfsf6[t] + p.rfso2[t]
 
-            v.rfemf22[t] = v.rfco2[t] + v.rfch4[t] + v.rfn2o[t]
-        end
+        v.rfemf22[t] = v.rfco2[t] + v.rfch4[t] + v.rfn2o[t]
     end
+end
 end

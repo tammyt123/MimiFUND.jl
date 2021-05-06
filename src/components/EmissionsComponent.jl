@@ -62,70 +62,70 @@
     income = Parameter(index=[time,regions])
     population = Parameter(index=[time,regions])
 
-    sf6gdp = Parameter(default = 0.00022628870292887)
-    sf6ypc = Parameter(default = -2.46698744769874e-6)
-    knowpar = Parameter(default = 0.9)
-    knowgpar = Parameter(default = 0.1)
-    gwpch4 = Parameter(default = 0.077)
-    gwpn2o = Parameter(default = 0.361666666666667)
+    sf6gdp = Parameter(default=0.00022628870292887)
+    sf6ypc = Parameter(default=-2.46698744769874e-6)
+    knowpar = Parameter(default=0.9)
+    knowgpar = Parameter(default=0.1)
+    gwpch4 = Parameter(default=0.077)
+    gwpn2o = Parameter(default=0.361666666666667)
 
-    taxconstant = Parameter(default = 0.784)
-    taxemint = Parameter(default = 0.084)
-    taxthreshold = Parameter(default = 100)
-    taxdepreciation = Parameter(default = 0.1)
-    maxcostfall = Parameter(default = 10)
+    taxconstant = Parameter(default=0.784)
+    taxemint = Parameter(default=0.084)
+    taxthreshold = Parameter(default=100)
+    taxdepreciation = Parameter(default=0.1)
+    maxcostfall = Parameter(default=10)
 
-    ch4add = Parameter(default = 0)
-    n2oadd = Parameter(default = 0)
-    sf6add = Parameter(default = 0)
+    ch4add = Parameter(default=0)
+    n2oadd = Parameter(default=0)
+    sf6add = Parameter(default=0)
     
     function run_timestep(p, v, d, t)
 
-        if is_first(t)
-            for r in d.regions
-                v.energint[t, r] = 1
-                v.energuse[t, r] = p.income[t,r]
-                v.emissint[t, r] = p.emissint0[r]
-                v.emission[t, r] = v.emissint[t, r] / v.energuse[t, r]
-                v.ch4cost[t, r] = 0
-                v.n2ocost[t, r] = 0
-                v.ryg[t, r] = 0
-                v.reei[t, r] = 0
-                v.rcei[t, r] = 0
-                v.seei[t, r] = 0
-                v.scei[t, r] = 0
-                v.co2red[t, r] = 0
-                v.know[t, r] = 1
-                v.ch4red[t, r] = 0
-                v.n2ored[t, r] = 0
-                v.mitigationcost[t, r] = 0
-            end
+    if is_first(t)
+        for r in d.regions
+            v.energint[t, r] = 1
+            v.energuse[t, r] = p.income[t,r]
+            v.emissint[t, r] = p.emissint0[r]
+            v.emission[t, r] = v.emissint[t, r] / v.energuse[t, r]
+            v.ch4cost[t, r] = 0
+            v.n2ocost[t, r] = 0
+            v.ryg[t, r] = 0
+            v.reei[t, r] = 0
+            v.rcei[t, r] = 0
+            v.seei[t, r] = 0
+            v.scei[t, r] = 0
+            v.co2red[t, r] = 0
+            v.know[t, r] = 1
+            v.ch4red[t, r] = 0
+            v.n2ored[t, r] = 0
+            v.mitigationcost[t, r] = 0
+        end
 
-            v.globknow[t] = 1
-            v.cumglobco2[t] = 0.0
-            v.cumglobch4[t] = 0.0
-            v.cumglobn2o[t] = 0.0
-            v.cumglobsf6[t] = 0.0
+        v.globknow[t] = 1
+        v.cumglobco2[t] = 0.0
+        v.cumglobch4[t] = 0.0
+        v.cumglobn2o[t] = 0.0
+        v.cumglobsf6[t] = 0.0
 
             # SocioEconomicState.minint[t]=Inf
-            minint = Inf
-            for r in d.regions
-                if v.emission[t, r] / p.income[t, r] < minint
-                    minint = v.emission[t, r] / p.income[t, r]
-                end
+        minint = Inf
+        for r in d.regions
+            if v.emission[t, r] / p.income[t, r] < minint
+                minint = v.emission[t, r] / p.income[t, r]
             end
+        end
             # v.minint[t] = minint
-            v.minint[t] = 0
-        else
+        v.minint[t] = 0
+    else
             # Calculate emission and carbon intensity
-            for r in d.regions
-                v.energint[t, r] = (1.0 - 0.01 * p.aeei[t, r] - v.reei[t - 1, r]) * v.energint[t - 1, r]
-                v.emissint[t, r] = (1.0 - 0.01 * p.acei[t, r] - v.rcei[t - 1, r]) * v.emissint[t - 1, r]
-            end
+        for r in d.regions
+            v.energint[t, r] = (1.0 - 0.01 * p.aeei[t, r] - v.reei[t - 1, r]) * v.energint[t - 1, r]
+            v.emissint[t, r] = (1.0 - 0.01 * p.acei[t, r] - v.rcei[t - 1, r]) * v.emissint[t - 1, r]
+        end
 
             # Calculate sf6 emissions
-            for r in d.regions
-                v.sf6[t, r] = (p.sf60[r] + p.sf6gdp * (p.income[t, r] - p.gdp90[r]) + p.sf6ypc * (p.income[t - 1, r] / p.population[t - 1, r] - p.gdp90[r] / p.pop90[r])) * (gettime(t) <= 2010 ? 1 + (gettime(t) - 1990) / 40.0 : 1.0 + (60.0 - 40.0) / 40.0) * (gettime(t) > 2010 ? 0.99^(gettime(t) - 2010) : 1.0)
+        for r in d.regions
+            v.sf6[t, r] = (p.sf60[r] + p.sf6gdp * (p.income[t, r] - p.gdp90[r]) + p.sf6ypc * (p.income[t - 1, r] / p.population[t - 1, r] - p.gdp90[r] / p.pop90[r])) * (gettime(t) <= 2010 ? 1 + (gettime(t) - 1990) / 40.0 : 1.0 + (60.0 - 40.0) / 40.0) * (gettime(t) > 2010 ? 0.99^(gettime(t) - 2010) : 1.0)
             end
 
             # Check for unrealistic values
@@ -276,7 +276,7 @@
             end
 
             for r in d.regions
-                #v.mitigationcost[t, r] = (p.taxmp[r] * v.ryg[t, r] /*+ v.ch4cost[t, r]*/ + v.n2ocost[t, r]) * p.income[t, r]
+                # v.mitigationcost[t, r] = (p.taxmp[r] * v.ryg[t, r] /*+ v.ch4cost[t, r]*/ + v.n2ocost[t, r]) * p.income[t, r]
                 v.mitigationcost[t, r] = (p.taxmp[r] * v.ryg[t, r] + v.n2ocost[t, r]) * p.income[t, r]
             end
 

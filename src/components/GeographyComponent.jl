@@ -8,14 +8,14 @@
 
     function run_timestep(p, v, d, t);
 
-        if is_first(t)
-            for r in d.regions
-                v.area[t, r] = p.area0[r]
-            end
-        else
-            for r in d.regions
-                v.area[t, r] = v.area[t - 1, r] - p.landloss[t - 1, r]
-            end
+    if is_first(t)
+        for r in d.regions
+            v.area[t, r] = p.area0[r]
+        end
+    else
+        for r in d.regions
+            v.area[t, r] = v.area[t - 1, r] - p.landloss[t - 1, r]
         end
     end
+end
 end

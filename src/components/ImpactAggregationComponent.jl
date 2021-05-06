@@ -30,14 +30,14 @@
 
     function run_timestep(p, v, d, t)
         
-        if is_first(t)
-            for r in d.regions
-                v.eloss[t, r] = 0.0
-                v.sloss[t, r] = 0.0
-            end
-        else
-            for r in d.regions
-                v.eloss[t, r] = min(
+    if is_first(t)
+        for r in d.regions
+            v.eloss[t, r] = 0.0
+            v.sloss[t, r] = 0.0
+        end
+    else
+        for r in d.regions
+            v.eloss[t, r] = min(
                     0.0 -
                     p.water[t, r] -
                     p.forests[t, r] -
@@ -52,7 +52,7 @@
                     p.eloss_other[t,r],
                     p.income[t, r])
 
-                v.sloss[t, r] = 0.0 +
+            v.sloss[t, r] = 0.0 +
                     p.species[t, r] +
                     p.deadcost[t, r] +
                     p.morbcost[t, r] +
@@ -60,8 +60,8 @@
                     p.leavecost[t, r] +
                     p.sloss_other[t,r]
 
-                v.loss[t, r] = (v.eloss[t, r] + v.sloss[t, r]) * 1000000000.0
-            end
+            v.loss[t, r] = (v.eloss[t, r] + v.sloss[t, r]) * 1000000000.0
         end
     end
+end
 end
