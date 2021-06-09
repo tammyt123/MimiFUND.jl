@@ -3,9 +3,11 @@ module MimiFUND
 using Mimi
 using DelimitedFiles
 using Random
+using MimiFAIR, DataFrames
 
 include("helper.jl")
 
+include("FAIR_implementation.jl")
 include("new_marginaldamages.jl")
 include("montecarlo/defmcs.jl")
 include("montecarlo/run_fund_mcs.jl")

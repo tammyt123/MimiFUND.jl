@@ -17,8 +17,12 @@ function get_fundfair(;usg_scenario::String)
     input_temp = temperature[[year in fund_years for year in fair_years], :T] # 58 element array, needs to be 100. make temperature constant after 2300
     append!(input_temp, repeat([input_temp[end]], length(fund_years) - length(input_temp)))
 
-    ## set parameter in DICE model
-    MimiFUND.set_param!(m, :temp, input_temp)
+    ## set parameter in FUND model
+    MimiFUND.set_param!(m, :climateco2cycle, :temp, :climate_temp, input_temp)
+    MimiFUND.set_param!(m, :biodiversity, :temp, :biodiversity_temp, input_temp)
+    MimiFUND.set_param!(m, :ocean, :temp, :ocean_temp, input_temp)
+    MimiFUND.set_param!(m, :inputtemp, input_temp)
+
     run(m)
 
     return(m)
@@ -30,11 +34,12 @@ end
 function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int)
     
     ## create FUND marginal model
-    m = MimiFUND.get_fundfair()
+    m = MimiFUND.get_fundfair(usg_scenario = usg_scenario)
     mm = Mimi.create_marginal_model(m, 1.0) # check: might need to change this pulse size
     run(mm)
 
     ## get perturbed FAIR temperature vector
+    fair_years = collect(1765:1:2300)
     new_temperature = MimiFAIR.get_perturbed_fair_temperature(usg_scenario = usg_scenario, pulse_year = pulse_year)
     new_temperature_df = DataFrame(year = fair_years, T = new_temperature)
 
@@ -43,30 +48,45 @@ function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int)
     append!(new_input_temp, repeat([new_input_temp[end]], length(fund_years) - length(new_input_temp)))
 
     ## set temperature in marginal DICE model to equal perturbed FAIR temperature
-    MimiFUND.update_param!(mm.modified, :temp, new_input_temp)
+    MimiFUND.update_param!(mm.modified, :climate_temp, new_input_temp)
+    MimiFUND.update_param!(mm.modified, :biodiversity_temp, new_input_temp)
+    MimiFUND.update_param!(mm.modified, :ocean_temp, new_input_temp)
+    MimiFUND.update_param!(mm.modified, :inputtemp, new_input_temp)
+
     run(mm)
 
     return(mm)
 
 end
 
-## compute SCC from FUNDFAIR
-function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, prtp::Float64, eta::Float64, last_year::Int=2300)
+## compute SCC from FUNDFAIR -- CONSTANT DISCOUNTING ONLY FOR NOW
+function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_rate::Float64, last_year::Int = 2300)
     
-    mm = MimiFUND.get_fundfair_marginal_model(usg_scenario::String, pulse_year::Int)
+    mm = MimiFUND.get_fundfair_marginal_model(usg_scenario = usg_scenario, pulse_year = pulse_year)
 
-    marginaldamage = mm[:impactaggregation, :loss]
+    if last_year > 3000
+        error("`last_year` cannot be greater than 3000.")
+    end
 
-    # calculate discount factors
-    df = zeros(ntimesteps, 16)
+    ## calculate discount factors
+    prtp = discount_rate # change this when implementing ramsey
+    fund_years = collect(1950:1:3000)
 
-    # assume equity_weights = false and equity_weights_normalization_region = 0 -- NEED TO CHECK THIS
-    normalization_ypc = equity_weights_normalization_region==0 ? mm.base[:socioeconomic, :globalypc][getindexfromyear(year)] : ypc[getindexfromyear(year), equity_weights_normalization_region]
-    df = Float64[t >= getindexfromyear(year) ? (normalization_ypc / ypc[t, r]) ^ eta / (1.0 + prtp) ^ (t - getindexfromyear(year)) : 0.0 for t = 1:ntimesteps, r = 1:16]
+    last_year_index = findfirst(isequal(last_year), fund_years)
+    marginaldamage = mm[:impactaggregation, :loss][1:last_year_index] # drop MD after last_year
 
-    # Compute global social cost
-    sc = sum(marginaldamage[2:ntimesteps, :] .* df[2:ntimesteps, :])   # need to start from second value because first value is missing
-    ## NEED TO CHECK THE ABOVE
+    pulse_year_index = findfirst(isequal(pulse_year), fund_years)
+
+    # constant discounting
+    df = zeros(length(marginaldamage), 16)
+    for i in 1:length(marginaldamage)
+        if i >= pulse_year_index
+            df[i,:] .= 1/(1+prtp)^(i-pulse_year_index)
+        end
+    end
+
+    ## calculate SCC
+    scc = sum(skipmissing(marginaldamage .* df)) / 1e9 # Gt to t
 
     return(scc)
 end
