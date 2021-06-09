@@ -73,13 +73,13 @@ function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_r
     fund_years = collect(1950:1:3000)
 
     last_year_index = findfirst(isequal(last_year), fund_years)
-    marginaldamage = mm[:impactaggregation, :loss][1:last_year_index] # drop MD after last_year
+    marginaldamage = mm[:impactaggregation, :loss][1:last_year_index,:] # drop MD after last_year
 
     pulse_year_index = findfirst(isequal(pulse_year), fund_years)
 
     # constant discounting
-    df = zeros(length(marginaldamage), 16)
-    for i in 1:length(marginaldamage)
+    df = zeros(size(marginaldamage,1), 16)
+    for i in 1:size(marginaldamage,1)
         if i >= pulse_year_index
             df[i,:] .= 1/(1+prtp)^(i-pulse_year_index)
         end
