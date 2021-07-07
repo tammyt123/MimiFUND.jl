@@ -29,18 +29,18 @@ function get_fundfair(;usg_scenario::String)
 
 end
 
-## function to get marginal FUND-FAIR model (i.e. input perturbed FAIR temperature vector into FUND)
+## function to get marginal FUND-FAIR model (i.e. input perturbed FAIR temperature vector into FUND). pulse_size in Gt
 ## note: FAIR-NCEE must be loaded in environment first!!
-function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int)
+function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int, pulse_size::Float64=1.0, gas::Symbol=:CO2)
     
     ## create FUND marginal model
     m = MimiFUND.get_fundfair(usg_scenario = usg_scenario)
-    mm = Mimi.create_marginal_model(m, 1.0) # check: might need to change this pulse size
+    mm = Mimi.create_marginal_model(m, pulse_size)
     run(mm)
 
     ## get perturbed FAIR temperature vector
     fair_years = collect(1765:1:2300)
-    new_temperature = MimiFAIR.get_perturbed_fair_temperature(usg_scenario = usg_scenario, pulse_year = pulse_year)
+    new_temperature = MimiFAIR.get_perturbed_fair_temperature(usg_scenario = usg_scenario, pulse_year = pulse_year, pulse_size = pulse_size, gas = gas)
     new_temperature_df = DataFrame(year = fair_years, T = new_temperature)
 
     fund_years = collect(1950:1:3000)
@@ -59,10 +59,10 @@ function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int)
 
 end
 
-## compute SCC from FUNDFAIR -- CONSTANT DISCOUNTING ONLY FOR NOW
-function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_rate::Float64, last_year::Int = 2300)
+## compute SCC from FUNDFAIR -- CONSTANT DISCOUNTING ONLY FOR NOW. pulse_size in Gt
+function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_rate::Float64, last_year::Int = 2300, gas::Symbol=:CO2, pulse_size::Float64=1.0)
     
-    mm = MimiFUND.get_fundfair_marginal_model(usg_scenario = usg_scenario, pulse_year = pulse_year)
+    mm = MimiFUND.get_fundfair_marginal_model(usg_scenario = usg_scenario, pulse_year = pulse_year, pulse_size = pulse_size, gas = gas)
 
     if last_year > 3000
         error("`last_year` cannot be greater than 3000.")
@@ -86,7 +86,7 @@ function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_r
     end
 
     ## calculate SCC
-    scc = sum(skipmissing(marginaldamage .* df)) / 1e9 # Gt to t
+    scc = sum(skipmissing(marginaldamage .* df)) / (pulse_size * 1e9) # Gt to t
 
     return(scc)
 end
