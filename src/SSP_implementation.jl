@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------------------------
-# description: manual SSP implementation and plotting of outputs
+# description: manual SSP implementation and plotting of outputs (old)
 # ---------------------------------------------------------------------------------------------
 
 using Pkg

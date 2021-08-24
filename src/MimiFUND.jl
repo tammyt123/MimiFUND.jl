@@ -3,12 +3,13 @@ module MimiFUND
 using Mimi
 using DelimitedFiles
 using Random
-using MimiFAIR, DataFrames
+# using MimiFAIR
+using DataFrames
 using CSVFiles
 
 include("helper.jl")
 
-include("FAIR_implementation.jl")
+# include("FAIR_implementation.jl")
 include("SSP_implementation_final.jl")
 include("new_marginaldamages.jl")
 include("montecarlo/defmcs.jl")

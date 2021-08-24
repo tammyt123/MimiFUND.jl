@@ -1,7 +1,3 @@
-# using Pkg
-# Pkg.activate("development")
-# using MimiFUND, Mimi, CSVFiles, DataFrames, Plots
-
 #######################################################################################################################
 # LOAD SSP PARAMETERS
 ########################################################################################################################
@@ -116,7 +112,7 @@ function get_ssp_fund_marginal_model(;gas::Symbol=:CO2, pulse_year::Int, pulse_s
         new_emissions[pulse_year_index] = new_emissions[pulse_year_index] .+ (pulse_size * 14/44) # N2O emissions are in MtN, convert 1MtN2O pulse to MtN
 
         # update emissions parameter
-        MimiFAIR.update_param!(mm.modified, :globn2o, new_emissions)
+        MimiFUND.update_param!(mm.modified, :globn2o, new_emissions)
 
     elseif gas == :CH4
         # perturb CH4 emissions
@@ -124,7 +120,7 @@ function get_ssp_fund_marginal_model(;gas::Symbol=:CO2, pulse_year::Int, pulse_s
         new_emissions[pulse_year_index] = new_emissions[pulse_year_index] .+ pulse_size # CH4 emissions are in MtCH4
 
         # update emissions parameter
-        MimiFAIR.update_param!(mm.modified, :globch4, new_emissions)
+        MimiFUND.update_param!(mm.modified, :globch4, new_emissions)
     else
         error("Gas not recognized. Available gases are :CO2, :N2O, and :CH4")
     end
