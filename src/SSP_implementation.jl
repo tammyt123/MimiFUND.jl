@@ -1,3 +1,7 @@
+# ---------------------------------------------------------------------------------------------
+# description: manual SSP implementation and plotting of outputs
+# ---------------------------------------------------------------------------------------------
+
 using Pkg
 Pkg.activate("development")
 using MimiFUND, Mimi, CSVFiles, DataFrames, Plots
@@ -23,8 +27,9 @@ gas_param_dict = Dict("CO2" => :mco2,
 ## implement with OECD Env-Growth model
 
 model = "OECD Env-Growth"
-ssp = "SSP1" # choose from SSP1-5
-cmip6_scen = "ssp126" # choose from ssp119, ssp126, ssp245, ssp370, ssp370-lowNTCF-aerchmmip, ssp370-lowNTCF-gidden, ssp434, ssp460, ssp534-over, ssp585
+ssp = "SSP4" # choose from SSP1-5
+cmip6_scen = "ssp460" # choose from ssp119, ssp126, ssp245, ssp370, ssp370-lowNTCF-aerchmmip, ssp370-lowNTCF-gidden, ssp434, ssp460, ssp534-over, ssp585
+# currently using ssp126, ssp245, ssp370, ssp460, ssp585 to pair with ssp1-5 respectively
 
 ## load model
 # model to be modified with SSP inputs
@@ -58,9 +63,6 @@ end
 # ---------------------------------------------------------------------------------------------
 # replace emissions
 # ---------------------------------------------------------------------------------------------
-
-# select appropriate rcp scenario based on ssp scenario
-# rcp = rcp_dict[scenario]
 
 # set emissions for each gas
 for gas in gases
@@ -125,13 +127,6 @@ savefig((directory * "/output/ssp/plots/" * "fund_global_pop_to_2300_" * ssp))
 plot(fund_years, m[:socioeconomic, :globalpopulation], title = "FUND Global Population", ylabel = "Population", xlabel = "Year", label = "FUND x " * ssp, legend = :bottomright)
 plot!(fund_years, default_FUND[:socioeconomic, :globalpopulation], label = "Default FUND")
 savefig((directory * "/output/ssp/plots/" * "fund_global_pop_" * ssp))
-
-## urb pop share
-
-# 1950-3000
-plot(fund_years, sum(m[:impactcardiovascularrespiratory, :urbpop], dims = 2), title = "FUND Urban Population", ylabel = "Population", xlabel = "Year", label = "FUND x " * ssp, legend = :bottomright)
-plot!(fund_years, sum(default_FUND[:impactcardiovascularrespiratory, :urbpop], dims = 2), label = "Default FUND")
-savefig((directory * "/output/ssp/plots/" * "fund_urb_pop_" * ssp))
 
 ## co2 emissions
 
