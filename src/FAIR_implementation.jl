@@ -1,12 +1,22 @@
-## function to get baseline FUND-FAIR model (i.e. input temperature vector from FAIR-NCEE into baseline FUND)
-function get_fundfair(;usg_scenario::String)
+#######################################################################################################################
+# LOAD BASELINE FUNDFAIR MODEL
+########################################################################################################################
+# Description: Return FUND model with temperature vector set to baseline FAIR model. Note: in order to run this, FAIR-NCEE must
+#              be loaded in the environment.
+#
+# Function Arguments:
+#
+#       rcp_scenario:     RCP scenario ("RCP26", "RCP45", "RCP60" or "RCP85")
+#----------------------------------------------------------------------------------------------------------------------
+
+function get_fundfair(;rcp_scenario::String="RCP85")
     
     ## load baseline FUND model
     m = MimiFUND.get_model()
     run(m)
 
     ## load baseline FAIR-NCEE
-    FAIR = MimiFAIR.get_model(usg_scenario = usg_scenario)
+    FAIR = MimiFAIR.get_model(rcp_scenario = rcp_scenario)
     run(FAIR)
 
     fair_years = collect(1765:1:2300)
@@ -29,25 +39,38 @@ function get_fundfair(;usg_scenario::String)
 
 end
 
-## function to get marginal FUND-FAIR model (i.e. input perturbed FAIR temperature vector into FUND)
-## note: FAIR-NCEE must be loaded in environment first!!
-function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int)
+
+#######################################################################################################################
+# GET MARGINAL FUNDFAIR MODEL
+########################################################################################################################
+# Description: Return marginal (perturbed) FUND model with temperature vector set to perturbed FAIR model. 
+#              Note: in order to run this, FAIR-NCEE must be loaded in the environment.
+#
+# Function Arguments:
+#
+#       rcp_scenario:     RCP scenario ("RCP26", "RCP45", "RCP60" or "RCP85")
+#       gas:              Gas to perturb (:CO2, :CH4, or :N2O).
+#       pulse_year:       Pulse year (for SC-GHG calculation).
+#       pulse_size:       Pulse size (defaults to 1.0).
+#----------------------------------------------------------------------------------------------------------------------
+
+function get_fundfair_marginal_model(;rcp_scenario::String="RCP85", pulse_year::Int, pulse_size::Float64=1.0, gas::Symbol=:CO2)
     
     ## create FUND marginal model
-    m = MimiFUND.get_fundfair(usg_scenario = usg_scenario)
-    mm = Mimi.create_marginal_model(m, 1.0) # check: might need to change this pulse size
+    m = MimiFUND.get_fundfair(rcp_scenario = rcp_scenario)
+    mm = Mimi.create_marginal_model(m, pulse_size)
     run(mm)
 
     ## get perturbed FAIR temperature vector
     fair_years = collect(1765:1:2300)
-    new_temperature = MimiFAIR.get_perturbed_fair_temperature(usg_scenario = usg_scenario, pulse_year = pulse_year)
+    new_temperature = MimiFAIR.get_perturbed_fair_temperature(rcp_scenario = rcp_scenario, pulse_year = pulse_year, gas = gas)
     new_temperature_df = DataFrame(year = fair_years, T = new_temperature)
 
     fund_years = collect(1950:1:3000)
     new_input_temp = new_temperature_df[[year in fund_years for year in fair_years], :T]
     append!(new_input_temp, repeat([new_input_temp[end]], length(fund_years) - length(new_input_temp)))
 
-    ## set temperature in marginal DICE model to equal perturbed FAIR temperature
+    ## set temperature in marginal FUND model to equal perturbed FAIR temperature
     MimiFUND.update_param!(mm.modified, :climate_temp, new_input_temp)
     MimiFUND.update_param!(mm.modified, :biodiversity_temp, new_input_temp)
     MimiFUND.update_param!(mm.modified, :ocean_temp, new_input_temp)
@@ -59,10 +82,23 @@ function get_fundfair_marginal_model(;usg_scenario::String, pulse_year::Int)
 
 end
 
-## compute SCC from FUNDFAIR -- CONSTANT DISCOUNTING ONLY FOR NOW
-function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_rate::Float64, last_year::Int = 2300)
+#######################################################################################################################
+# COMPUTE SC-GHG
+########################################################################################################################
+# Description: Compute SC-GHGs. Note: in order to run this, FAIR-NCEE must be loaded in the environment.
+#
+# Function Arguments:
+#
+#       rcp_scenario:     RCP scenario ("RCP26", "RCP45", "RCP60" or "RCP85")
+#       discount_rate:    Constant discount rate.
+#       gas:              Gas to perturb (:CO2, :CH4, or :N2O).
+#       pulse_year:       Pulse year (for SC-GHG calculation).
+#       pulse_size:       Pulse size (defaults to 1.0).
+#----------------------------------------------------------------------------------------------------------------------
+
+function compute_scghg_fundfair(;rcp_scenario::String, pulse_year::Int, discount_rate::Float64, last_year::Int = 2300, gas::Symbol=:CO2, pulse_size::Float64=1.0)
     
-    mm = MimiFUND.get_fundfair_marginal_model(usg_scenario = usg_scenario, pulse_year = pulse_year)
+    mm = MimiFUND.get_fundfair_marginal_model(rcp_scenario = rcp_scenario, pulse_year = pulse_year, pulse_size = pulse_size, gas = gas)
 
     if last_year > 3000
         error("`last_year` cannot be greater than 3000.")
@@ -85,9 +121,9 @@ function compute_scc_fundfair(;usg_scenario::String, pulse_year::Int, discount_r
         end
     end
 
-    ## calculate SCC
-    scc = sum(skipmissing(marginaldamage .* df)) / 1e9 # Gt to t
+    ## calculate SC-GHG
+    scghg = sum(skipmissing(marginaldamage .* df)) / 1e9 # Gt to t
 
-    return(scc)
+    return(scghg)
 end
 
