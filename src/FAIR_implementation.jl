@@ -24,7 +24,7 @@ function get_fundfair(;rcp_scenario::String="RCP85")
 
     temperature = DataFrame(year = fair_years, T = FAIR[:temperature, :T])
 
-    input_temp = temperature[[year in fund_years for year in fair_years], :T] # 58 element array, needs to be 100. make temperature constant after 2300
+    input_temp = temperature[[year in fund_years for year in fair_years], :T] # make temperature constant after 2300
     append!(input_temp, repeat([input_temp[end]], length(fund_years) - length(input_temp)))
 
     ## set parameter in FUND model
