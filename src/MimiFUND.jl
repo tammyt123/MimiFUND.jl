@@ -6,6 +6,7 @@ using Random
 
 include("helper.jl")
 
+include("partial_damages.jl")
 include("new_marginaldamages.jl")
 include("montecarlo/defmcs.jl")
 include("montecarlo/run_fund_mcs.jl")
